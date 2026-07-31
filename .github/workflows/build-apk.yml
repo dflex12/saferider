@@ -5,7 +5,7 @@ on:
     branches:
       - main
       - master
-  workflow_dispatch: # Allows you to manually trigger the build from GitHub Actions tab
+  workflow_dispatch:
 
 jobs:
   build-android:
@@ -21,10 +21,22 @@ jobs:
           node-version: 20
           cache: 'npm'
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Install Dependencies & Capacitor Packages
+        run: |
+          npm install
+          npm install @capacitor/core @capacitor/cli @capacitor/android
 
-      - name: Build Web App Assets
+      - name: Auto-generate Capacitor Config if Missing
+        run: |
+          if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
+            echo '{
+              "appId": "com.saferide.app",
+              "appName": "SafeRide",
+              "webDir": "dist"
+            }' > capacitor.config.json
+          fi
+
+      - name: Build Web App
         run: npm run build
 
       - name: Setup Java JDK 17
@@ -36,7 +48,7 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Sync Capacitor Android Project
+      - name: Add & Sync Android Platform
         run: |
           if [ ! -d "android" ]; then
             npx cap add android
