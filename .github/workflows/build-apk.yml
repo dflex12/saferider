@@ -15,26 +15,23 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
+      - name: Fix Subfolder Structure (if nested)
+        run: |
+          if [ ! -f "package.json" ] && [ -d "SadeRide-main" ]; then
+            echo "Found SadeRide-main subfolder. Moving files to root..."
+            mv SadeRide-main/* .
+            mv SadeRide-main/.* . 2>/dev/null || true
+          fi
+
       - name: Setup Node.js Environment
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
 
-      - name: Install Dependencies & Capacitor Packages
+      - name: Install Dependencies
         run: |
-          npm install
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-
-      - name: Auto-generate Capacitor Config if Missing
-        run: |
-          if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
-            echo '{
-              "appId": "com.saferide.app",
-              "appName": "SafeRide",
-              "webDir": "dist"
-            }' > capacitor.config.json
-          fi
+          npm install --legacy-peer-deps
+          npm install @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
 
       - name: Build Web App
         run: npm run build
@@ -48,8 +45,11 @@ jobs:
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Add & Sync Android Platform
+      - name: Initialize & Sync Capacitor
         run: |
+          if [ ! -f "capacitor.config.json" ] && [ ! -f "capacitor.config.ts" ]; then
+            npx cap init SafeRide com.saferide.app --web-dir dist
+          fi
           if [ ! -d "android" ]; then
             npx cap add android
           fi
